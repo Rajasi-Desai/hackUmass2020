@@ -21,10 +21,14 @@ def is_new_img(fpath):
     else:
         is_new = True
     if is_new:
-        # copyfile(fpath, 'old_img.jpg')
+        copyfile(fpath, 'old_img.jpg')
         pass
 
     return is_new
+
+
+def not_empty(fpath):
+    return os.path.getsize(fpath) > 0
 
 
 config = {
@@ -40,17 +44,28 @@ config = {
 
 firebase = pyrebase.initialize_app(config)
 storage = firebase.storage()
-path_on_cloud = "images/foo.png" # Image Classification file
 
 classifier = ingredientClassifier('second_model.h5')
 
 while True:
-    # storage.child(path_on_cloud).download("recent_image.png")
+    storage.child("____IMAGE___PATH____").download("recent_image.png")
+    storage.child('images/user_query.json').download('user_query.json')
     if is_new_img("recent_image.png"):
         with open('result.json', 'w') as f:
             json.dump(classifier.urls_from_image("recent_image.png"), f)
         storage.child("images/result.json").put('result.json')
 
-    else:
-        time.sleep(10)
-        print('Starting next check...')
+    elif not_empty("user_query.json"):
+        with open("user_query.json", 'r') as r:
+            j = json.loads(json.load(r))
+
+        ingredients = j['ingredients']
+
+        with open('result.json', 'w') as f:
+            json.dump(classifier.urls_from_list(ingredients), f)
+
+        storage.child("images/result.json").put('result.json')
+        storage.child("images/user_query.json").put('blank_file.json')
+
+    time.sleep(10)
+    print('Starting next check...')
